@@ -1,8 +1,8 @@
-<?php 
+<?php
 define("RUTA", "http://localhost/Lab1P2_2022CP602_2022HZ651/");
 
 // Archivos de configuración
-require_once "configRCMH/contenidoRCMH.php";
+require_once __DIR__ . "/configRCMH/contenidoRCMH.php";
 
 $contenido = new ContenidoRCMH();
 ?>
@@ -16,7 +16,8 @@ $contenido = new ContenidoRCMH();
 </head>
 <body>
 
-<?php include "configRCMH/menuRCMH.php"; ?>
+<!-- MENÚ -->
+<?php include __DIR__ . "/configRCMH/menuRCMH.php"; ?>
 
 <div class="container mt-4">
 <?php 
