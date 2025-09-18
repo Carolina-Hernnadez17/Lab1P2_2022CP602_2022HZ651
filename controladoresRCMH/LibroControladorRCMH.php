@@ -1,58 +1,54 @@
 <?php
-require_once "../daoRCMH/LibroDAO_RCMH.php";
-require_once "../modelosRCMH/LibroRCMH.php";
+require_once "daoRCMH/LibroDAO_RCMH.php";
+require_once "daoRCMH/AutorDAO_RCMH.php";
+require_once "daoRCMH/CategoriaDAO_RCMH.php";
+require_once "modelosRCMH/LibroRCMH.php";
 
 class LibroControladorRCMH {
     private $dao;
+    private $daoAutor;
+    private $daoCategoria;
 
-    public function __construct(){
+    public function __construct() {
         $this->dao = new LibroDAO_RCMH();
+        $this->daoAutor = new AutorDAO_RCMH();
+        $this->daoCategoria = new CategoriaDAO_RCMH();
     }
 
-    // Getter
-    public function getDao(): LibroDAO_RCMH {
-        return $this->dao;
+    public function index() {
+        $libros = $this->dao->listar();
+        require "vistasRCMH/librosRCMH/listarLibrosRCMH.php";
     }
 
-    // Setter
-    public function setDao(LibroDAO_RCMH $dao){
-        $this->dao = $dao;
-    }
+    public function agregar() {
+        $autores = $this->daoAutor->listar();
+        $categorias = $this->daoCategoria->listar();
 
-    public function listarRCMH(){
-        return $this->dao->listarRCMH();
-    }
+        if ($_SERVER['REQUEST_METHOD']==='POST') {
+            $titulo = $_POST['titulo'] ?? "";
+            $idAutor = $_POST['idAutor'] ?? "";
+            $portada = $_POST['portada'] ?? "";
+            $stock = intval($_POST['stock'] ?? 1);
 
-    public function agregarRCMH($data){
-        if(!empty($data['titulo']) && !empty($data['id_autor'])){
-            $stock = isset($data['stock']) ? (int)$data['stock'] : 1;
-            $disponible = $stock > 0 ? 1 : 0;
-            $libro = new LibroRCMH(null, $data['titulo'], $data['id_autor'], $data['portada'] ?? '', $stock, $disponible);
-            return $this->dao->agregarRCMH($libro);
+            if ($titulo && $idAutor && $portada) {
+                $libro = new LibroRCMH(null, $titulo, $idAutor, $portada, $stock, 1);
+                $this->dao->agregar($libro);
+                header("Location: ".RUTA."libro/index");
+            } else {
+                $error = "Todos los campos son obligatorios.";
+            }
         }
-        return false;
+        require "vistasRCMH/librosRCMH/agregarLibroRCMH.php";
     }
 
-    public function obtenerRCMH($id){
-        return $this->dao->obtenerRCMH($id);
+    public function comprar($id) {
+        $this->dao->comprar($id);
+        header("Location: ".RUTA."libro/index");
     }
 
-    public function actualizarRCMH($data){
-        if(!empty($data['id_libro']) && !empty($data['titulo']) && !empty($data['id_autor'])){
-            $stock = isset($data['stock']) ? (int)$data['stock'] : 1;
-            $disponible = isset($data['disponible']) ? (int)$data['disponible'] : ($stock>0 ? 1:0);
-            $libro = new LibroRCMH($data['id_libro'], $data['titulo'], $data['id_autor'], $data['portada'] ?? '', $stock, $disponible);
-            return $this->dao->actualizarRCMH($libro);
-        }
-        return false;
-    }
-
-    public function eliminarRCMH($id){
-        return $this->dao->eliminarRCMH($id);
-    }
-
-    public function comprarRCMH($id){
-        return $this->dao->comprarRCMH($id);
+    public function eliminar($id) {
+        $this->dao->eliminar($id);
+        header("Location: ".RUTA."libro/index");
     }
 }
 ?>

@@ -1,51 +1,38 @@
 <?php
-require_once "../daoRCMH/AutorDAO_RCMH.php";
-require_once "../modelosRCMH/AutorRCMH.php";
+require_once "daoRCMH/AutorDAO_RCMH.php";
+require_once "modelosRCMH/AutorRCMH.php";
 
 class AutorControladorRCMH {
     private $dao;
 
-    public function __construct(){
+    public function __construct() {
         $this->dao = new AutorDAO_RCMH();
     }
 
-    // Getter
-    public function getDao(): AutorDAO_RCMH {
-        return $this->dao;
+    public function index() {
+        $autores = $this->dao->listar();
+        require "vistasRCMH/autoresRCMH/listarAutoresRCMH.php";
     }
 
-    // Setter
-    public function setDao(AutorDAO_RCMH $dao){
-        $this->dao = $dao;
-    }
+    public function agregar() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $nombre = $_POST['nombre'] ?? "";
+            $nacionalidad = $_POST['nacionalidad'] ?? "";
 
-    // Funciones del controlador
-    public function listarRCMH(){
-        return $this->dao->listarRCMH();
-    }
-
-    public function agregarRCMH($data){
-        if(!empty($data['nombre']) && !empty($data['nacionalidad'])){
-            $autor = new AutorRCMH(null, $data['nombre'], $data['nacionalidad']);
-            return $this->dao->agregarRCMH($autor);
+            if ($nombre && $nacionalidad) {
+                $autor = new AutorRCMH(null, $nombre, $nacionalidad);
+                $this->dao->agregar($autor);
+                header("Location: ".RUTA."autor/index");
+            } else {
+                $error = "Todos los campos son obligatorios.";
+            }
         }
-        return false;
+        require "vistasRCMH/autoresRCMH/agregarAutorRCMH.php";
     }
 
-    public function obtenerRCMH($id){
-        return $this->dao->obtenerRCMH($id);
-    }
-
-    public function actualizarRCMH($data){
-        if(!empty($data['id_autor']) && !empty($data['nombre']) && !empty($data['nacionalidad'])){
-            $autor = new AutorRCMH($data['id_autor'], $data['nombre'], $data['nacionalidad']);
-            return $this->dao->actualizarRCMH($autor);
-        }
-        return false;
-    }
-
-    public function eliminarRCMH($id){
-        return $this->dao->eliminarRCMH($id);
+    public function eliminar($id) {
+        $this->dao->eliminar($id);
+        header("Location: ".RUTA."autor/index");
     }
 }
 ?>

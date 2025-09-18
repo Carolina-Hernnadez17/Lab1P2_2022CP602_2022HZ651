@@ -1,10 +1,10 @@
 <?php
 class CategoriaRCMH {
-    public $id_categoria;
+    public $id;
     public $nombre;
 
-    public function __construct($id_categoria=null, $nombre=null){
-        $this->id_categoria = $id_categoria;
+    public function __construct($id=null, $nombre=""){
+        $this->id = $id;
         $this->nombre = $nombre;
     }
 }
