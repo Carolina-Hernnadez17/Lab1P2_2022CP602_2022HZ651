@@ -4,54 +4,40 @@ require_once "modelos/Libro.php";
 
 class LibroDAO {
     private $cn;
+    public function __construct(){ $this->cn = (new ConexionRCMH())->conectarRCMH(); }
 
-    public function __construct() {
-        $this->cn = new ConexionRCMH();
-    }
-
-    public function getAll() {
-        $results = $this->cn->consulta("SELECT * FROM libros ORDER BY titulo ASC");
+    public function getAll(){
+        $stmt = $this->cn->query("SELECT * FROM libros ORDER BY titulo ASC");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $libros = [];
-        foreach($results as $r){
-            $libros[] = new Libro($r['id_libro'], $r['titulo'], $r['id_autor'], $r['portada'], $r['disponible'] ?? 1);
+        foreach($data as $d){
+            $libros[] = new Libro($d['id_libro'],$d['titulo'],$d['id_autor'],$d['portada'],$d['disponible']);
         }
         return $libros;
     }
 
-    public function getById($id) {
-        $results = $this->cn->consulta("SELECT * FROM libros WHERE id_libro=:id", [":id"=>$id]);
-        if(count($results) > 0){
-            $r = $results[0];
-            return new Libro($r['id_libro'], $r['titulo'], $r['id_autor'], $r['portada'], $r['disponible'] ?? 1);
-        }
+    public function getById($id){
+        $stmt = $this->cn->prepare("SELECT * FROM libros WHERE id_libro=:id");
+        $stmt->execute(['id'=>$id]);
+        $d = $stmt->fetch(PDO::FETCH_ASSOC);
+        if($d) return new Libro($d['id_libro'],$d['titulo'],$d['id_autor'],$d['portada'],$d['disponible']);
         return null;
     }
 
-    public function add(Libro $l) {
-        $sql = "INSERT INTO libros (titulo, id_autor, portada, disponible) 
-                VALUES (:titulo, :id_autor, :portada, :disponible)";
-        return $this->cn->ejecutar($sql, [
-            ":titulo"=>$l->getTitulo(),
-            ":id_autor"=>$l->getIdAutor(),
-            ":portada"=>$l->getPortada(),
-            ":disponible"=>$l->getDisponible()
-        ]);
+    public function add(Libro $l){
+        $stmt = $this->cn->prepare("INSERT INTO libros(titulo,id_autor,portada,disponible) VALUES(:t,:a,:p,:d)");
+        $stmt->execute(['t'=>$l->getTitulo(),'a'=>$l->getIdAutor(),'p'=>$l->getPortada(),'d'=>$l->getDisponible()]);
+        return $this->cn->lastInsertId();
     }
 
-    public function update(Libro $l) {
-        $sql = "UPDATE libros SET titulo=:titulo, id_autor=:id_autor, portada=:portada, disponible=:disponible 
-                WHERE id_libro=:id";
-        return $this->cn->ejecutar($sql, [
-            ":titulo"=>$l->getTitulo(),
-            ":id_autor"=>$l->getIdAutor(),
-            ":portada"=>$l->getPortada(),
-            ":disponible"=>$l->getDisponible(),
-            ":id"=>$l->getId()
-        ]);
+    public function update(Libro $l){
+        $stmt = $this->cn->prepare("UPDATE libros SET titulo=:t,id_autor=:a,portada=:p,disponible=:d WHERE id_libro=:id");
+        return $stmt->execute(['t'=>$l->getTitulo(),'a'=>$l->getIdAutor(),'p'=>$l->getPortada(),'d'=>$l->getDisponible(),'id'=>$l->getId()]);
     }
 
-    public function delete($id) {
-        return $this->cn->ejecutar("DELETE FROM libros WHERE id_libro=:id", [":id"=>$id]);
+    public function delete($id){
+        $stmt = $this->cn->prepare("DELETE FROM libros WHERE id_libro=:id");
+        return $stmt->execute(['id'=>$id]);
     }
 }
 ?>

@@ -10,58 +10,37 @@ class CategoriaController {
 
     public function index() {
         $categorias = $this->dao->getAll();
-        require_once "vistas/categorias/index.php";
+        require "vistas/categorias/index.php";
     }
 
     public function add() {
-        $error = "";
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $nombre = trim($_POST['nombre']);
-            if(empty($nombre)){
-                $error = "El nombre de la categoría es obligatorio";
+        if($_POST){
+            $cat = new Categoria(null, $_POST['nombre']);
+            if($this->dao->add($cat)){
+                header("Location: ".RUTA."categorias");
             } else {
-                $categoria = new Categoria(null, $nombre);
-                if($this->dao->add($categoria)){
-                    header("Location: ".RUTA."categoria");
-                    exit;
-                } else {
-                    $error = "Error al agregar la categoría";
-                }
+                $error = "Error al guardar la categoría";
             }
         }
-        require_once "vistas/categorias/add.php";
+        require "vistas/categorias/add.php";
     }
 
-    public function edit($id) {
-        $categoria = $this->dao->getById($id);
-        if(!$categoria){
-            header("Location: ".RUTA."categoria");
-            exit;
-        }
-
-        $error = "";
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $nombre = trim($_POST['nombre']);
-            if(empty($nombre)){
-                $error = "El nombre de la categoría es obligatorio";
+    public function edit($id){
+        $cat = $this->dao->getById($id);
+        if($_POST){
+            $cat->setNombre($_POST['nombre']);
+            if($this->dao->update($cat)){
+                header("Location: ".RUTA."categorias");
             } else {
-                $categoria->setNombre($nombre);
-                if($this->dao->update($categoria)){
-                    header("Location: ".RUTA."categoria");
-                    exit;
-                } else {
-                    $error = "Error al actualizar la categoría";
-                }
+                $error = "Error al actualizar la categoría";
             }
         }
-
-        require_once "vistas/categorias/edit.php";
+        require "vistas/categorias/edit.php";
     }
 
-    public function delete($id) {
+    public function delete($id){
         $this->dao->delete($id);
-        header("Location: ".RUTA."categoria");
-        exit;
+        header("Location: ".RUTA."categorias");
     }
 }
 ?>

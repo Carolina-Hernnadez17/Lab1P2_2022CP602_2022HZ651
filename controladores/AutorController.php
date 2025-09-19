@@ -8,66 +8,40 @@ class AutorController {
         $this->dao = new AutorDAO();
     }
 
-    // Mostrar todos los autores
     public function index() {
-        $autores = $this->dao->getAll(); // aquí obtenemos todos los autores
-        require_once "vistas/autores/index.php"; // pasamos la variable a la vista
+        $autores = $this->dao->getAll();
+        require "vistas/autores/index.php";
     }
 
     public function add() {
-        $error = "";
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $nombre = $_POST['nombre'];
-            $nacionalidad = $_POST['nacionalidad'];
-
-            if(empty($nombre) || empty($nacionalidad)){
-                $error = "Todos los campos son obligatorios";
+        if($_POST) {
+            $autor = new Autor(null, $_POST['nombre'], $_POST['nacionalidad']);
+            if($this->dao->add($autor)){
+                header("Location: ".RUTA."autores");
             } else {
-                $autor = new Autor(null, $nombre, $nacionalidad);
-                if($this->dao->add($autor)){
-                    header("Location: ".RUTA."autor");
-                    exit;
-                } else {
-                    $error = "Error al agregar el autor";
-                }
+                $error = "Error al guardar el autor";
             }
         }
-        require_once "vistas/autores/add.php";
+        require "vistas/autores/add.php";
     }
 
     public function edit($id) {
-        $error = "";
         $autor = $this->dao->getById($id);
-        if(!$autor){
-            header("Location: ".RUTA."autor");
-            exit;
-        }
-
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $nombre = $_POST['nombre'];
-            $nacionalidad = $_POST['nacionalidad'];
-
-            if(empty($nombre) || empty($nacionalidad)){
-                $error = "Todos los campos son obligatorios";
+        if($_POST){
+            $autor->setNombre($_POST['nombre']);
+            $autor->setNacionalidad($_POST['nacionalidad']);
+            if($this->dao->update($autor)){
+                header("Location: ".RUTA."autores");
             } else {
-                $autor->setNombre($nombre);
-                $autor->setNacionalidad($nacionalidad);
-                if($this->dao->update($autor)){
-                    header("Location: ".RUTA."autor");
-                    exit;
-                } else {
-                    $error = "Error al actualizar el autor";
-                }
+                $error = "Error al actualizar el autor";
             }
         }
-
-        require_once "vistas/autores/edit.php";
+        require "vistas/autores/edit.php";
     }
 
-    public function delete($id) {
+    public function delete($id){
         $this->dao->delete($id);
-        header("Location: ".RUTA."autor");
-        exit;
+        header("Location: ".RUTA."autores");
     }
 }
 ?>

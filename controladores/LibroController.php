@@ -1,126 +1,93 @@
 <?php
 require_once "modelosDAO/LibroDAO.php";
+require_once "modelosDAO/LibroCategoriaDAO.php";
 require_once "modelosDAO/AutorDAO.php";
 require_once "modelosDAO/CategoriaDAO.php";
-require_once "modelosDAO/LibroCategoriaDAO.php";
 
 class LibroController {
     private $dao;
-    private $autorDao;
-    private $categoriaDao;
-    private $lcDao;
+    private $lcDAO;
+    private $autorDAO;
+    private $catDAO;
 
     public function __construct() {
         $this->dao = new LibroDAO();
-        $this->autorDao = new AutorDAO();
-        $this->categoriaDao = new CategoriaDAO();
-        $this->lcDao = new LibroCategoriaDAO();
+        $this->lcDAO = new LibroCategoriaDAO();
+        $this->autorDAO = new AutorDAO();
+        $this->catDAO = new CategoriaDAO();
     }
 
     public function index() {
         $libros = $this->dao->getAll();
-        require_once "vistas/libros/index.php";
+        $autores = $this->autorDAO->getAll();
+        $categorias = $this->catDAO->getAll();
+        require "vistas/libros/index.php";
     }
 
     public function add() {
-        $autores = $this->autorDao->getAll();
-        $categorias = $this->categoriaDao->getAll();
-        $error = "";
+    $autores = $this->autorDAO->getAll();
+    $categorias = $this->catDAO->getAll();
 
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $titulo = $_POST['titulo'];
-            $id_autor = $_POST['id_autor'];
-            $disponible = 1;
+    if($_POST){
+        $libro = new Libro(null,$_POST['titulo'],$_POST['id_autor'],$_FILES['portada']['name']??null,1);
+        $idLibro = $this->dao->add($libro);
 
-            // Subida de portada
-            $portada = null;
-            if(isset($_FILES['portada']) && $_FILES['portada']['error'] == 0){
-                $nombreArchivo = time()."_".$_FILES['portada']['name'];
-                move_uploaded_file($_FILES['portada']['tmp_name'], "uploads/".$nombreArchivo);
-                $portada = $nombreArchivo;
-            }
-
-            if(empty($titulo) || empty($id_autor)){
-                $error = "Título y Autor son obligatorios";
-            } else {
-                $libro = new Libro(null, $titulo, $id_autor, $portada, $disponible);
-                if($this->dao->add($libro)){
-                    $id_libro = $this->dao->getAll(); // obtener último libro agregado
-                    $id_libro = end($id_libro)->getId();
-
-                    // Guardar categorías
-                    if(isset($_POST['categorias'])){
-                        foreach($_POST['categorias'] as $c){
-                            $this->lcDao->add($id_libro, $c);
-                        }
-                    }
-
-                    header("Location: ".RUTA."libro");
-                    exit;
-                } else {
-                    $error = "Error al agregar el libro";
+        if($idLibro){
+            if(!empty($_POST['categorias'])){
+                foreach($_POST['categorias'] as $c){
+                    $this->lcDAO->add($idLibro,$c);
                 }
             }
-        }
 
-        require_once "vistas/libros/add.php";
+            if(isset($_FILES['portada']) && $_FILES['portada']['error']==0){
+                move_uploaded_file($_FILES['portada']['tmp_name'], "uploads/".$_FILES['portada']['name']);
+            }
+
+            header("Location: ".RUTA."libros");
+        } else {
+            $error = "Error al guardar el libro";
+        }
     }
 
-    public function edit($id) {
+    // Pasar estas variables a la vista
+    require "vistas/libros/add.php";
+}
+
+
+    public function edit($id){
         $libro = $this->dao->getById($id);
-        if(!$libro) { header("Location: ".RUTA."libro"); exit; }
+        $autores = $this->autorDAO->getAll();
+        $categorias = $this->catDAO->getAll();
+        $catsLibro = array_column($this->lcDAO->getCategoriasByLibro($id),'id_categoria');
 
-        $autores = $this->autorDao->getAll();
-        $categorias = $this->categoriaDao->getAll();
-        $categoriasLib = $this->lcDao->getCategoriasByLibro($id);
-        $categoriasLibIds = array_column($categoriasLib, 'id_categoria');
-
-        $error = "";
-
-        if($_SERVER['REQUEST_METHOD'] == "POST"){
-            $titulo = $_POST['titulo'];
-            $id_autor = $_POST['id_autor'];
-            $disponible = isset($_POST['disponible']) ? 1 : 0;
-
-            // Subida de portada
-            if(isset($_FILES['portada']) && $_FILES['portada']['error'] == 0){
-                $nombreArchivo = time()."_".$_FILES['portada']['name'];
-                move_uploaded_file($_FILES['portada']['tmp_name'], "uploads/".$nombreArchivo);
-                $libro->setPortada($nombreArchivo);
+        if($_POST){
+            $libro->setTitulo($_POST['titulo']);
+            $libro->setIdAutor($_POST['id_autor']);
+            if(isset($_FILES['portada']) && $_FILES['portada']['error']==0){
+                $libro->setPortada($_FILES['portada']['name']);
+                move_uploaded_file($_FILES['portada']['tmp_name'], "uploads/".$_FILES['portada']['name']);
             }
 
-            if(empty($titulo) || empty($id_autor)){
-                $error = "Título y Autor son obligatorios";
-            } else {
-                $libro->setTitulo($titulo);
-                $libro->setIdAutor($id_autor);
-                $libro->setDisponible($disponible);
+            $this->dao->update($libro);
 
-                if($this->dao->update($libro)){
-                    // actualizar categorías
-                    $this->lcDao->deleteByLibro($id);
-                    if(isset($_POST['categorias'])){
-                        foreach($_POST['categorias'] as $c){
-                            $this->lcDao->add($id, $c);
-                        }
-                    }
+            $this->lcDAO->deleteByLibro($id);
 
-                    header("Location: ".RUTA."libro");
-                    exit;
-                } else {
-                    $error = "Error al actualizar el libro";
+            if(!empty($_POST['categorias'])){
+                foreach($_POST['categorias'] as $c){
+                    $this->lcDAO->add($id,$c);
                 }
             }
+
+            header("Location: ".RUTA."libros");
         }
 
-        require_once "vistas/libros/edit.php";
+        require "vistas/libros/edit.php";
     }
 
-    public function delete($id) {
-        $this->lcDao->deleteByLibro($id);
+    public function delete($id){
         $this->dao->delete($id);
-        header("Location: ".RUTA."libro");
-        exit;
+        $this->lcDAO->deleteByLibro($id);
+        header("Location: ".RUTA."libros");
     }
 }
 ?>

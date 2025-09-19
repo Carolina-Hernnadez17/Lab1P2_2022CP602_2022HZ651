@@ -4,48 +4,39 @@ require_once "modelos/Autor.php";
 
 class AutorDAO {
     private $cn;
+    public function __construct(){ $this->cn = (new ConexionRCMH())->conectarRCMH(); }
 
-    public function __construct() {
-        $this->cn = new ConexionRCMH();
-    }
-
-    public function getAll() {
-        $results = $this->cn->consulta("SELECT * FROM autores ORDER BY nombre ASC");
+    public function getAll(){
+        $stmt = $this->cn->query("SELECT * FROM autores ORDER BY nombre ASC");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $autores = [];
-        foreach($results as $r){
-            $autores[] = new Autor($r['id_autor'], $r['nombre'], $r['nacionalidad']);
+        foreach($data as $d){
+            $autores[] = new Autor($d['id_autor'], $d['nombre'], $d['nacionalidad']);
         }
         return $autores;
     }
 
-    public function getById($id) {
-        $results = $this->cn->consulta("SELECT * FROM autores WHERE id_autor = :id", [":id"=>$id]);
-        if(count($results) > 0){
-            $r = $results[0];
-            return new Autor($r['id_autor'], $r['nombre'], $r['nacionalidad']);
-        }
+    public function getById($id){
+        $stmt = $this->cn->prepare("SELECT * FROM autores WHERE id_autor=:id");
+        $stmt->execute(['id'=>$id]);
+        $d = $stmt->fetch(PDO::FETCH_ASSOC);
+        if($d) return new Autor($d['id_autor'], $d['nombre'], $d['nacionalidad']);
         return null;
     }
 
-    public function add(Autor $autor) {
-        $sql = "INSERT INTO autores (nombre, nacionalidad) VALUES (:nombre, :nacionalidad)";
-        return $this->cn->ejecutar($sql, [
-            ":nombre" => $autor->getNombre(),
-            ":nacionalidad" => $autor->getNacionalidad()
-        ]);
+    public function add(Autor $a){
+        $stmt = $this->cn->prepare("INSERT INTO autores(nombre,nacionalidad) VALUES(:n,:na)");
+        return $stmt->execute(['n'=>$a->getNombre(),'na'=>$a->getNacionalidad()]);
     }
 
-    public function update(Autor $autor) {
-        $sql = "UPDATE autores SET nombre=:nombre, nacionalidad=:nacionalidad WHERE id_autor=:id";
-        return $this->cn->ejecutar($sql, [
-            ":nombre"=>$autor->getNombre(),
-            ":nacionalidad"=>$autor->getNacionalidad(),
-            ":id"=>$autor->getId()
-        ]);
+    public function update(Autor $a){
+        $stmt = $this->cn->prepare("UPDATE autores SET nombre=:n,nacionalidad=:na WHERE id_autor=:id");
+        return $stmt->execute(['n'=>$a->getNombre(),'na'=>$a->getNacionalidad(),'id'=>$a->getId()]);
     }
 
-    public function delete($id) {
-        return $this->cn->ejecutar("DELETE FROM autores WHERE id_autor=:id", [":id"=>$id]);
+    public function delete($id){
+        $stmt = $this->cn->prepare("DELETE FROM autores WHERE id_autor=:id");
+        return $stmt->execute(['id'=>$id]);
     }
 }
 ?>
